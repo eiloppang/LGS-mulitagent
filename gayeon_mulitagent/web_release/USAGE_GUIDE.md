@@ -166,7 +166,7 @@ cat usage_logs/$(date +%Y-%m-%d).jsonl | jq
 
 ### .env (상위 디렉토리)
 ```bash
-GEMINI_API_KEY=AIzaSyCYHo9EnHACS95hoQpvrwgiHZjNZeY6CzM
+GEMINI_API_KEY=your_api_key_here
 GEMINI_MODEL=models/gemini-2.5-flash
 GEMINI_EMBEDDING_MODEL=models/text-embedding-004
 ```
