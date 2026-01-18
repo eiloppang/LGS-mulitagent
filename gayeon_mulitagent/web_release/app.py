@@ -117,7 +117,7 @@ def call_api(query: str):
         conversation_id = str(uuid.uuid4())[:8]
         
         # Google Sheets에 대화 기록 저장
-        log_to_sheets("conversations", [
+        log_success = log_to_sheets("conversations", [
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             conversation_id,
             query,
@@ -127,6 +127,9 @@ def call_api(query: str):
             result["retry_count"],
             ", ".join(result["knowledge_sources"][:3])
         ])
+        
+        if not log_success:
+            st.sidebar.error("📝 Google Sheets 로그 저장 실패")
         
         return {
             "conversation_id": conversation_id,
@@ -159,7 +162,7 @@ def submit_feedback(conversation_id: str, query: str, answer: str, rating: int, 
         
         # Google Sheets에 피드백 저장
         type_labels = {"positive": "👍 좋아요", "negative": "👎 개선필요", "suggestion": "💡 제안"}
-        log_to_sheets("feedbacks", [
+        feedback_success = log_to_sheets("feedbacks", [
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             conversation_id,
             query[:200],  # 질문 길이 제한
@@ -167,6 +170,9 @@ def submit_feedback(conversation_id: str, query: str, answer: str, rating: int, 
             type_labels.get(feedback_type, feedback_type),
             comment[:500] if comment else ""
         ])
+        
+        if not feedback_success:
+            st.sidebar.error("📝 피드백 저장 실패")
         
         return True
     except:
@@ -200,6 +206,14 @@ st.markdown("""
 # 헤더
 st.title("🤔 이광수 AI - 인지부조화 분석")
 st.caption(f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+
+# Google Sheets 연결 상태 확인
+sheets_status = get_sheets()
+if sheets_status:
+    st.success("📊 Google Sheets 연결됨 - 로그가 자동 저장됩니다")
+else:
+    st.warning("⚠️ Google Sheets 연결 안됨 - 로그가 저장되지 않습니다")
+
 st.divider()
 
 # 사이드바
