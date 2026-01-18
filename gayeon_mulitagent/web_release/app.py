@@ -1,0 +1,327 @@
+"""
+Streamlit 프론트엔드 - 이광수 AI (인증 없음, 피드백 기능 포함)
+"""
+import streamlit as st
+import requests
+import plotly.graph_objects as go
+from datetime import datetime
+
+# API 설정
+API_URL = "http://localhost:8000"
+
+st.set_page_config(
+    page_title="이광수 AI",
+    page_icon="🤔",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# 세션 상태 초기화
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "total_queries" not in st.session_state:
+    st.session_state.total_queries = 0
+if "feedback_given" not in st.session_state:
+    st.session_state.feedback_given = set()  # 피드백을 준 대화 ID 저장
+
+
+def call_api(query: str):
+    """API 호출"""
+    try:
+        response = requests.post(
+            f"{API_URL}/api/chat",
+            json={"query": query},
+            timeout=180  # 3분 (첫 로딩 시간 고려)
+        )
+        
+        if response.status_code == 200:
+            return response.json(), None
+        else:
+            return None, f"오류 {response.status_code}: {response.text}"
+    except requests.exceptions.Timeout:
+        return None, "요청 시간 초과: 서버가 응답하지 않습니다"
+    except Exception as e:
+        return None, f"API 호출 실패: {str(e)}"
+
+
+def submit_feedback(conversation_id: str, query: str, answer: str, rating: int, comment: str, feedback_type: str):
+    """피드백 제출"""
+    try:
+        response = requests.post(
+            f"{API_URL}/api/feedback",
+            json={
+                "conversation_id": conversation_id,
+                "query": query,
+                "answer": answer,
+                "rating": rating,
+                "comment": comment,
+                "feedback_type": feedback_type
+            },
+            timeout=10
+        )
+        return response.status_code == 200
+    except:
+        return False
+
+
+def get_stats():
+    """통계 가져오기"""
+    try:
+        response = requests.get(f"{API_URL}/api/stats", timeout=5)
+        if response.status_code == 200:
+            return response.json(), None
+        else:
+            return None, "통계를 가져올 수 없습니다"
+    except:
+        return None, "서버 연결 실패"
+
+
+# CSS 스타일
+st.markdown("""
+<style>
+    .stButton>button {
+        width: 100%;
+    }
+    .metric-card {
+        background-color: #f0f2f6;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin: 0.5rem 0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
+# 헤더
+st.title("🤔 이광수 AI - 인지부조화 분석")
+st.caption(f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+st.divider()
+
+# 사이드바
+with st.sidebar:
+    st.header("📊 분석 결과")
+    
+    if "last_result" in st.session_state:
+        result = st.session_state.last_result
+        
+        # 검증 점수
+        score = result["validation_score"]
+        is_valid = result["success"]
+        
+        # 게이지 차트
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number+delta",
+            value=score,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "검증 점수"},
+            delta={'reference': 70},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkgreen" if is_valid else "darkred"},
+                'steps': [
+                    {'range': [0, 50], 'color': "lightgray"},
+                    {'range': [50, 70], 'color': "gray"},
+                    {'range': [70, 100], 'color': "lightgreen"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 70
+                }
+            }
+        ))
+        fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # 세부 점수
+        st.subheader("세부 평가")
+        details = result["validation_details"]
+        aspects = details.get("aspects", {})
+        
+        st.metric(
+            "1️⃣ 부조화 트리거",
+            f"{aspects.get('trigger_analysis', 0):.0f} / 30",
+            help="도덕적 찔림 포착 및 외부 정당화 분석"
+        )
+        
+        st.metric(
+            "2️⃣ 합리화 기제",
+            f"{aspects.get('mechanism_identification', 0):.0f} / 40",
+            help="Rationalization, Blaming Victims, Self Affirmation"
+        )
+        
+        st.metric(
+            "3️⃣ 설득력",
+            f"{aspects.get('persuasiveness', 0):.0f} / 30",
+            help="궤변의 치밀함과 자기 기만의 완성도"
+        )
+        
+        # 재시도 정보
+        if result["retry_count"] > 0:
+            st.info(f"🔄 재시도: {result['retry_count']}회")
+        
+        # 피드백
+        feedback = details.get("feedback", "")
+        if feedback and feedback != "PASS":
+            with st.expander("💬 피드백 보기"):
+                st.write(feedback)
+        
+        # 출처
+        st.divider()
+        st.subheader("📚 참고 문헌")
+        for i, source in enumerate(result["knowledge_sources"][:3], 1):
+            st.caption(f"{i}. {source}")
+    
+    else:
+        st.info("질문을 입력하면 분석 결과가 여기에 표시됩니다.")
+    
+    # 통계
+    st.divider()
+    st.subheader("📈 오늘의 통계")
+    
+    if st.button("통계 새로고침", use_container_width=True):
+        stats, error = get_stats()
+        
+        if error:
+            st.error(error)
+        elif stats:
+            st.metric("총 질문 수", stats["total_queries"])
+            st.metric("평균 점수", f"{stats['avg_score']:.1f}")
+
+# 메인 채팅 영역
+st.subheader("💬 대화")
+
+# 대화 이력
+chat_container = st.container()
+with chat_container:
+    for idx, msg in enumerate(st.session_state.messages):
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
+            
+            # 메타 정보 + 피드백 버튼 (assistant만)
+            if msg["role"] == "assistant" and "meta" in msg:
+                meta = msg["meta"]
+                conv_id = meta.get("conversation_id", str(idx))
+                
+                st.caption(
+                    f"⏱️ 시간: {meta['timestamp']} | "
+                    f"📊 점수: {meta['score']:.0f} | "
+                    f"{'✅ 합격' if meta['success'] else '❌ 불합격'}"
+                )
+                
+                # 피드백 버튼 (아직 피드백을 주지 않은 경우만)
+                if conv_id not in st.session_state.feedback_given:
+                    with st.expander("📝 이 답변에 피드백 남기기"):
+                        # 이전 사용자 질문 찾기
+                        prev_query = ""
+                        if idx > 0 and st.session_state.messages[idx-1]["role"] == "user":
+                            prev_query = st.session_state.messages[idx-1]["content"]
+                        
+                        col_a, col_b = st.columns([1, 1])
+                        with col_a:
+                            rating = st.slider(
+                                "평점", 
+                                min_value=1, 
+                                max_value=5, 
+                                value=3, 
+                                key=f"rating_{conv_id}",
+                                help="1: 매우 불만족, 5: 매우 만족"
+                            )
+                        with col_b:
+                            feedback_type = st.selectbox(
+                                "피드백 유형",
+                                ["positive", "negative", "suggestion"],
+                                format_func=lambda x: {"positive": "👍 좋아요", "negative": "👎 개선 필요", "suggestion": "💡 제안"}[x],
+                                key=f"type_{conv_id}"
+                            )
+                        
+                        comment = st.text_area(
+                            "코멘트 (선택사항)",
+                            placeholder="답변에 대한 의견을 자유롭게 작성해주세요...",
+                            key=f"comment_{conv_id}"
+                        )
+                        
+                        if st.button("피드백 제출", key=f"submit_{conv_id}", type="primary"):
+                            success = submit_feedback(
+                                conv_id, 
+                                prev_query, 
+                                msg["content"], 
+                                rating, 
+                                comment, 
+                                feedback_type
+                            )
+                            if success:
+                                st.session_state.feedback_given.add(conv_id)
+                                st.success("✅ 피드백이 저장되었습니다. 감사합니다!")
+                                st.rerun()
+                            else:
+                                st.error("피드백 저장에 실패했습니다.")
+                else:
+                    st.caption("✅ 피드백 완료")
+
+# 입력
+prompt = st.chat_input("이광수에게 질문하세요...")
+
+if prompt:
+    # 사용자 메시지 추가
+    st.session_state.messages.append({
+        "role": "user",
+        "content": prompt
+    })
+    
+    # 화면 업데이트
+    with chat_container:
+        with st.chat_message("user"):
+            st.write(prompt)
+    
+    # AI 응답
+    with chat_container:
+        with st.chat_message("assistant"):
+            with st.spinner("🤔 이광수가 고뇌하고 있습니다..."):
+                result, error = call_api(prompt)
+                
+                if error:
+                    st.error(f"❌ {error}")
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": f"[오류] {error}"
+                    })
+                else:
+                    answer = result["answer"]
+                    conv_id = result.get("conversation_id", "unknown")
+                    st.write(answer)
+                    
+                    # 메타 정보
+                    timestamp = datetime.now().strftime('%H:%M:%S')
+                    st.caption(
+                        f"⏱️ {timestamp} | "
+                        f"📊 {result['validation_score']:.0f}/100 | "
+                        f"{'✅ 합격' if result['success'] else '❌ 불합격'}"
+                    )
+                    
+                    # 세션에 저장
+                    st.session_state.last_result = result
+                    st.session_state.total_queries += 1
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": answer,
+                        "meta": {
+                            "conversation_id": conv_id,
+                            "timestamp": timestamp,
+                            "score": result["validation_score"],
+                            "success": result["success"]
+                        }
+                    })
+    
+    # 사이드바 업데이트를 위한 리렌더
+    st.rerun()
+
+# 하단 정보
+st.divider()
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("총 질문 수", st.session_state.total_queries)
+with col2:
+    st.metric("현재 세션", len(st.session_state.messages) // 2)
+with col3:
+    st.caption("Powered by Gemini 2.5 Flash")
