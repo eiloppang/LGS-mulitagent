@@ -1,13 +1,35 @@
 """
-Streamlit 프론트엔드 - 이광수 AI (인증 없음, 피드백 기능 포함)
+Streamlit 프론트엔드 - 이광수 AI (Streamlit Cloud 배포 버전)
+API 서버 없이 직접 에이전트 호출
 """
 import streamlit as st
-import requests
 import plotly.graph_objects as go
 from datetime import datetime
+import os
+import sys
+import uuid
 
-# API 설정
-API_URL = "http://localhost:8000"
+# 상위 디렉토리 agents_2 임포트를 위한 경로 추가
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+
+# 환경변수에서 API 키 로드 (Streamlit Cloud secrets 지원)
+if hasattr(st, 'secrets') and 'GEMINI_API_KEY' in st.secrets:
+    os.environ['GEMINI_API_KEY'] = st.secrets['GEMINI_API_KEY']
+
+from agents_2.orchestrator import MultiAgentOrchestrator
+
+# Orchestrator 캐싱 (세션당 한 번만 초기화)
+@st.cache_resource
+def get_orchestrator():
+    """Orchestrator 싱글톤 인스턴스"""
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return MultiAgentOrchestrator(
+        talk_style_dir=os.path.join(base_dir, "GS_talk_style"),
+        paper_dir=os.path.join(base_dir, "GS_paper"),
+        max_retries=3
+    )
 
 st.set_page_config(
     page_title="이광수 AI",
@@ -26,54 +48,52 @@ if "feedback_given" not in st.session_state:
 
 
 def call_api(query: str):
-    """API 호출"""
+    """직접 Orchestrator 호출"""
     try:
-        response = requests.post(
-            f"{API_URL}/api/chat",
-            json={"query": query},
-            timeout=180  # 3분 (첫 로딩 시간 고려)
-        )
+        orchestrator = get_orchestrator()
+        result = orchestrator.process_query(query, verbose=False)
         
-        if response.status_code == 200:
-            return response.json(), None
-        else:
-            return None, f"오류 {response.status_code}: {response.text}"
-    except requests.exceptions.Timeout:
-        return None, "요청 시간 초과: 서버가 응답하지 않습니다"
+        conversation_id = str(uuid.uuid4())[:8]
+        
+        return {
+            "conversation_id": conversation_id,
+            "answer": result["final_answer"],
+            "validation_score": result["validation_score"],
+            "validation_details": result["validation_details"],
+            "knowledge_sources": result["knowledge_sources"],
+            "retry_count": result["retry_count"],
+            "success": result["success"]
+        }, None
+        
     except Exception as e:
-        return None, f"API 호출 실패: {str(e)}"
+        return None, f"처리 중 오류 발생: {str(e)}"
 
 
 def submit_feedback(conversation_id: str, query: str, answer: str, rating: int, comment: str, feedback_type: str):
-    """피드백 제출"""
+    """피드백 저장 (로컬 파일)"""
     try:
-        response = requests.post(
-            f"{API_URL}/api/feedback",
-            json={
-                "conversation_id": conversation_id,
-                "query": query,
-                "answer": answer,
-                "rating": rating,
-                "comment": comment,
-                "feedback_type": feedback_type
-            },
-            timeout=10
-        )
-        return response.status_code == 200
+        # Streamlit Cloud에서는 피드백을 세션 상태에만 저장
+        if "feedbacks" not in st.session_state:
+            st.session_state.feedbacks = []
+        st.session_state.feedbacks.append({
+            "conversation_id": conversation_id,
+            "query": query,
+            "rating": rating,
+            "comment": comment,
+            "feedback_type": feedback_type,
+            "timestamp": datetime.now().isoformat()
+        })
+        return True
     except:
         return False
 
 
 def get_stats():
-    """통계 가져오기"""
-    try:
-        response = requests.get(f"{API_URL}/api/stats", timeout=5)
-        if response.status_code == 200:
-            return response.json(), None
-        else:
-            return None, "통계를 가져올 수 없습니다"
-    except:
-        return None, "서버 연결 실패"
+    """세션 통계"""
+    return {
+        "total_queries": st.session_state.get("total_queries", 0),
+        "avg_score": 0
+    }, None
 
 
 # CSS 스타일
