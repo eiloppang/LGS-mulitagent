@@ -173,9 +173,14 @@ Feedback: [점수가 70점 미만일 경우 구체적 개선 지시, 70점 이�
         return total_score, aspects, feedback
     
     def _extract_score(self, line: str) -> float:
-        """라인에서 점수 추출"""
+        """라인에서 점수 추출 (예: '25/30' 에서 25 추출)"""
         import re
-        match = re.search(r'(\d+(?:\.\d+)?)', line)
-        if match:
-            return float(match.group(1))
+        # "25/30" 또는 "25 / 30" 형태에서 첫 번째 숫자 추출
+        score_match = re.search(r'(\d+(?:\.\d+)?)\s*/\s*\d+', line)
+        if score_match:
+            return float(score_match.group(1))
+        # "[점수]/숫자" 형태가 없으면 마지막 숫자 추출 시도
+        numbers = re.findall(r'(\d+(?:\.\d+)?)', line)
+        if numbers:
+            return float(numbers[-1])
         return 0.0
