@@ -9,6 +9,10 @@ python-multipart>=0.0.6
 streamlit>=1.28.0
 plotly>=5.17.0
 
+# Google Sheets 연동
+gspread>=5.12.0
+google-auth>=2.23.0
+
 # Existing dependencies
 google-genai>=0.2.0
 langchain>=0.1.0

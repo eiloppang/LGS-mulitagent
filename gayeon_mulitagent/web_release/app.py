@@ -1,6 +1,6 @@
 """
 Streamlit 프론트엔드 - 이광수 AI (Streamlit Cloud 배포 버전)
-API 서버 없이 직접 에이전트 호출
+API 서버 없이 직접 에이전트 호출 + Google Sheets 로그 저장
 """
 import streamlit as st
 import plotly.graph_objects as go
@@ -8,6 +8,7 @@ from datetime import datetime
 import os
 import sys
 import uuid
+import json
 
 # 상위 디렉토리 agents_2 임포트를 위한 경로 추가
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -20,7 +21,67 @@ if hasattr(st, 'secrets') and 'GEMINI_API_KEY' in st.secrets:
 
 from agents_2.orchestrator import MultiAgentOrchestrator
 
-# Orchestrator 캐싱 (세션당 한 번만 초기화)
+# ===== Google Sheets 연동 =====
+def get_gspread_client():
+    """Google Sheets 클라이언트 생성"""
+    try:
+        import gspread
+        from google.oauth2.service_account import Credentials
+        
+        if hasattr(st, 'secrets') and 'gcp_service_account' in st.secrets:
+            credentials_dict = dict(st.secrets['gcp_service_account'])
+            credentials = Credentials.from_service_account_info(
+                credentials_dict,
+                scopes=[
+                    "https://www.googleapis.com/auth/spreadsheets",
+                    "https://www.googleapis.com/auth/drive"
+                ]
+            )
+            return gspread.authorize(credentials)
+    except Exception as e:
+        st.sidebar.warning(f"Google Sheets 연결 실패: {e}")
+    return None
+
+@st.cache_resource
+def get_sheets():
+    """Google Sheets 워크시트 가져오기"""
+    client = get_gspread_client()
+    if client:
+        try:
+            # 스프레드시트 열기 (secrets에서 이름 가져오기)
+            sheet_name = st.secrets.get("SHEET_NAME", "이광수AI_로그")
+            spreadsheet = client.open(sheet_name)
+            
+            # 워크시트 가져오기 또는 생성
+            try:
+                conversations = spreadsheet.worksheet("대화기록")
+            except:
+                conversations = spreadsheet.add_worksheet("대화기록", 1000, 10)
+                conversations.append_row(["시간", "대화ID", "질문", "답변", "점수", "합격여부", "재시도", "출처"])
+            
+            try:
+                feedbacks = spreadsheet.worksheet("피드백")
+            except:
+                feedbacks = spreadsheet.add_worksheet("피드백", 1000, 8)
+                feedbacks.append_row(["시간", "대화ID", "질문", "평점", "유형", "코멘트"])
+            
+            return {"conversations": conversations, "feedbacks": feedbacks}
+        except Exception as e:
+            st.sidebar.warning(f"시트 접근 오류: {e}")
+    return None
+
+def log_to_sheets(sheet_type: str, data: list):
+    """Google Sheets에 로그 저장"""
+    try:
+        sheets = get_sheets()
+        if sheets and sheet_type in sheets:
+            sheets[sheet_type].append_row(data)
+            return True
+    except Exception as e:
+        print(f"로그 저장 오류: {e}")
+    return False
+
+# ===== Orchestrator 캐싱 =====
 @st.cache_resource
 def get_orchestrator():
     """Orchestrator 싱글톤 인스턴스"""
@@ -55,6 +116,18 @@ def call_api(query: str):
         
         conversation_id = str(uuid.uuid4())[:8]
         
+        # Google Sheets에 대화 기록 저장
+        log_to_sheets("conversations", [
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            conversation_id,
+            query,
+            result["final_answer"][:500],  # 답변 길이 제한
+            result["validation_score"],
+            "합격" if result["success"] else "불합격",
+            result["retry_count"],
+            ", ".join(result["knowledge_sources"][:3])
+        ])
+        
         return {
             "conversation_id": conversation_id,
             "answer": result["final_answer"],
@@ -70,9 +143,9 @@ def call_api(query: str):
 
 
 def submit_feedback(conversation_id: str, query: str, answer: str, rating: int, comment: str, feedback_type: str):
-    """피드백 저장 (로컬 파일)"""
+    """피드백 저장 (Google Sheets + 세션)"""
     try:
-        # Streamlit Cloud에서는 피드백을 세션 상태에만 저장
+        # 세션 상태에 저장
         if "feedbacks" not in st.session_state:
             st.session_state.feedbacks = []
         st.session_state.feedbacks.append({
@@ -83,6 +156,18 @@ def submit_feedback(conversation_id: str, query: str, answer: str, rating: int, 
             "feedback_type": feedback_type,
             "timestamp": datetime.now().isoformat()
         })
+        
+        # Google Sheets에 피드백 저장
+        type_labels = {"positive": "👍 좋아요", "negative": "👎 개선필요", "suggestion": "💡 제안"}
+        log_to_sheets("feedbacks", [
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            conversation_id,
+            query[:200],  # 질문 길이 제한
+            rating,
+            type_labels.get(feedback_type, feedback_type),
+            comment[:500] if comment else ""
+        ])
+        
         return True
     except:
         return False
