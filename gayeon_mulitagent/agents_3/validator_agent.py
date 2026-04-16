@@ -1,9 +1,17 @@
 """
 검증 에이전트: 생성된 답변이 이광수 스타일, 특히 자기합리화에 맞는지 검증 (Ollama gemma4 버전)
 """
+import os
 from typing import Dict, Any, List, Optional
 from .base_agent import BaseAgent
 from .style_agent import StyleAgent
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
 
 
 class ValidatorAgent(BaseAgent):
@@ -12,14 +20,24 @@ class ValidatorAgent(BaseAgent):
     def __init__(self,
                  style_agent: StyleAgent = None,
                  model_name: Optional[str] = None,
-                 temperature: float = 0.3):
+                 temperature: float = 0.3,
+                 enable_thinking: Optional[bool] = None):
         """
         Args:
             style_agent: 스타일 참조를 위한 StyleAgent
             model_name: 사용할 Ollama 모델 (None이면 env OLLAMA_MODEL)
             temperature: 생성 온도 (낮을수록 일관된 평가)
+            enable_thinking: gemma4 thinking 모드. None이면 env
+                ENABLE_VALIDATOR_THINKING (기본 true)을 따른다.
+                CoT 3단계 채점 품질 향상을 위해 ValidatorAgent만 ON.
         """
-        super().__init__(model_name=model_name, temperature=temperature)
+        if enable_thinking is None:
+            enable_thinking = _env_bool("ENABLE_VALIDATOR_THINKING", True)
+        super().__init__(
+            model_name=model_name,
+            temperature=temperature,
+            enable_thinking=enable_thinking,
+        )
         self.style_agent = style_agent
 
     def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
