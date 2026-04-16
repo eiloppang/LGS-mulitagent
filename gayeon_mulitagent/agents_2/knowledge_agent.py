@@ -17,7 +17,7 @@ class KnowledgeAgent(BaseAgent):
                  paper_dir: str = "./GS_paper",
                  model_name: str = "models/gemini-2.5-flash",
                  temperature: float = 0.5,
-                 embedding_model: str = "models/text-embedding-004"):
+                 embedding_model: str = "gemini-embedding-001"):
         """
         Args:
             paper_dir: 논문 PDF가 있는 디렉토리

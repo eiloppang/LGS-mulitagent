@@ -33,46 +33,6 @@
   3. ValidatorAgent가 검증
   4. 검증 실패 시 최대 3회 재시도
 
-## 🔀 두 개의 에이전트 패키지 (agents_2 vs agents_3)
-
-같은 멀티에이전트 파이프라인을 두 LLM 백엔드로 구현한 패키지가 공존합니다. 임베딩과 ChromaDB 인덱스는 공유하므로 한쪽에서 만들어 둔 벡터스토어를 다른 쪽에서 그대로 재사용합니다.
-
-| 항목 | `agents_2/` (Gemini) | `agents_3/` (Ollama gemma4) |
-|---|---|---|
-| LLM | Google Gemini 2.5 Flash API | Ollama `gemma4:e4b` (기본) |
-| 임베딩 | Gemini `text-embedding-004` | **동일** (Gemini) |
-| Chroma persist | `GS_paper/chroma_db_gemini` 등 | **동일 디렉터리·컬렉션 재사용** |
-| 진입점 | `python main_gemini.py` | `python main_agent3.py` |
-| 필요 키 | `GEMINI_API_KEY` | `GEMINI_API_KEY` (임베딩) + 로컬 Ollama |
-| Validator thinking | 해당 없음 | `ENABLE_VALIDATOR_THINKING=true` 시 활성 |
-| 에이전트별 온도 | Knowledge 0.5 / Style 0.8 / Validator 0.3 | 동일 (per-agent 유지) |
-
-### agents_3 실행
-
-```bash
-# 1) Ollama 실행 및 모델 pull
-ollama serve &
-ollama pull gemma4:e4b      # 또는 gemma4:26b / gemma4:31b
-
-# 2) .env 설정 (.env.example 복사 후 채우기)
-cp gayeon_mulitagent/.env.example gayeon_mulitagent/.env
-# GEMINI_API_KEY, OLLAMA_MODEL 등을 환경에 맞게 수정
-
-# 3) 의존성 설치
-pip install -r requirements.txt
-
-# 4) 실행
-cd gayeon_mulitagent
-python main_agent3.py
-```
-
-### 차이점 / 주의사항
-
-- `agents_3`도 임베딩에는 Gemini API를 호출하므로 `GEMINI_API_KEY`가 필요합니다 (ChromaDB 인덱스를 `agents_2`와 공유하기 위함 — 재색인 비용 절약).
-- `ValidatorAgent`만 thinking 모드가 기본 ON입니다. 응답에서 `<|channel|>thought ... <channel|>` 블록은 자동으로 제거되어 최종 점수·피드백만 반환됩니다.
-- `OLLAMA_TEMPERATURE=1.0` 등은 gemma4 공식 권장값이며, 각 에이전트(`KnowledgeAgent=0.5`, `StyleAgent=0.8`, `ValidatorAgent=0.3`) 코드의 명시값이 우선합니다. `.env`의 `OLLAMA_*` 값은 호출자가 명시하지 않을 때만 폴백으로 사용됩니다.
-- `agents_2`와 `agents_3` 코드는 완전히 분리되어 있어 한쪽 수정이 다른 쪽에 영향을 주지 않습니다 — 두 파이프라인을 나란히 실행하여 출력을 비교할 수 있습니다.
-
 ## 🚀 설치 및 실행
 
 > **✨ 이 프로젝트는 Ollama를 사용하여 완전 무료로 로컬에서 실행됩니다!**

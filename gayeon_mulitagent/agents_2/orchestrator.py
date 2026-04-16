@@ -41,7 +41,7 @@ class MultiAgentOrchestrator:
         if model_name is None:
             model_name = os.getenv("GEMINI_MODEL", "models/gemini-2.5-flash")
         if embedding_model is None:
-            embedding_model = os.getenv("GEMINI_EMBEDDING_MODEL", "models/text-embedding-004")
+            embedding_model = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
         
         print(f"\n사용 모델: {model_name}")
         print(f"임베딩 모델: {embedding_model}\n")

@@ -100,7 +100,7 @@ class StyleAgent(BaseAgent):
                  talk_style_dir: str = "./GS_talk_style",
                  model_name: str = "models/gemini-2.5-flash",
                  temperature: float = 0.8,
-                 embedding_model: str = "models/text-embedding-004"):
+                 embedding_model: str = "gemini-embedding-001"):
 
         super().__init__(model_name, temperature)
         self.talk_style_dir = talk_style_dir
