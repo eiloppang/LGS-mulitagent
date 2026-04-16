@@ -24,8 +24,14 @@ class KnowledgeAgent(BaseAgent):
             model_name: 사용할 Ollama 모델 (None이면 env OLLAMA_MODEL)
             temperature: 생성 온도
             embedding_model: 임베딩용 Gemini 모델 (agents_2와 동일하게 유지)
+
+        지식 에이전트는 사실 추출/요약 단계라 thinking 모드 OFF.
         """
-        super().__init__(model_name=model_name, temperature=temperature)
+        super().__init__(
+            model_name=model_name,
+            temperature=temperature,
+            enable_thinking=False,
+        )
         self.paper_dir = paper_dir
         self.vectorstore = None
         self.embeddings = GeminiEmbeddings(model=embedding_model)

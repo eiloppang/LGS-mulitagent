@@ -101,8 +101,12 @@ class StyleAgent(BaseAgent):
                  model_name: Optional[str] = None,
                  temperature: float = 0.8,
                  embedding_model: str = "models/text-embedding-004"):
-
-        super().__init__(model_name=model_name, temperature=temperature)
+        # 스타일 변환은 창작/모방 단계라 thinking 모드 OFF.
+        super().__init__(
+            model_name=model_name,
+            temperature=temperature,
+            enable_thinking=False,
+        )
         self.talk_style_dir = talk_style_dir
         self.vectorstore = None
         self.embeddings = GeminiEmbeddings(model=embedding_model)
