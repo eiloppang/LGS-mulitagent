@@ -1,0 +1,21 @@
+# 이광수 친일 챗봇 Streamlit 테마 — 한지+먹색 팔레트
+# 1930-40년대 근대 문학 분위기를 의도.
+
+[theme]
+base = "light"
+# 먹색 (ink) — primary headers, focus rings
+primaryColor = "#3D2817"
+# 한지 상아색 — 배경
+backgroundColor = "#F5EDD6"
+# 한지 진한 톤 — 카드/사이드바/메시지
+secondaryBackgroundColor = "#E8DCC0"
+# 본문 먹색
+textColor = "#2C1F15"
+# 기본 폰트 (세리프 스택)
+font = "serif"
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"

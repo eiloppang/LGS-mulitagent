@@ -30,6 +30,7 @@ class KnowledgeAgent(BaseAgent):
         self.vectorstore = None
         self.embeddings = GeminiEmbeddings(model=embedding_model)
         self._load_papers()
+        self._load_structured_sources()
         
     def _load_papers(self):
         """논문 데이터 로드 (기존 벡터 DB 사용)"""
@@ -92,7 +93,54 @@ class KnowledgeAgent(BaseAgent):
         )
         
         self.log(f"논문 데이터 로드 완료: {len(pdf_files)}개 논문, {len(splits)}개 청크 (캐시 생성)")
-        
+
+    def _load_structured_sources(self):
+        """2차 사료 구조화 JSON(secondary_sources.json)을 기존 벡터스토어에 병합.
+
+        JSON 엔트리의 id를 ChromaDB document id로 사용하므로,
+        이미 추가된 엔트리는 upsert로 갱신되고 중복 삽입되지 않는다.
+        """
+        import json as _json
+
+        if not self.vectorstore:
+            return
+
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        json_path = os.path.join(base_dir, "secondary_sources.json")
+        if not os.path.exists(json_path):
+            return
+
+        try:
+            with open(json_path, encoding="utf-8") as f:
+                entries = _json.load(f)
+        except Exception as e:
+            self.log(f"구조화 2차 사료 로드 실패: {e}")
+            return
+
+        texts = []
+        metadatas = []
+        ids = []
+        for entry in entries:
+            # 임베딩 대상 텍스트: [쟁점축] 하위주제: 핵심_논거
+            embed_text = (
+                f"[{entry['쟁점축']}] {entry['하위주제']}: {entry['핵심_논거']}"
+            )
+            src = entry.get("논문_출처", {})
+            meta = {
+                "source_file": f"{src.get('저자', '')}({src.get('연도', '')}) {src.get('제목', '')}",
+                "page": "structured",
+                "쟁점축": entry.get("쟁점축", ""),
+                "방어기제_유형": ", ".join(entry.get("방어기제_유형", [])),
+                "시기": entry.get("시기", ""),
+                "키워드": ", ".join(entry.get("키워드", [])),
+            }
+            texts.append(embed_text)
+            metadatas.append(meta)
+            ids.append(entry["id"])
+
+        self.vectorstore.add_texts(texts=texts, metadatas=metadatas, ids=ids)
+        self.log(f"구조화 2차 사료 병합 완료: {len(entries)}개 엔트리 추가 (기존 청크와 공존)")
+
     def search_knowledge(self, query: str, k: int = 5) -> List[Dict[str, Any]]:
         """지식 검색"""
         if not self.vectorstore:
