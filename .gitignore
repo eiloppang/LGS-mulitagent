@@ -179,3 +179,20 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+# === 이광수 전집 원문 (저작권) — 절대 업로드 금지 ===
+new-version-multiagent/LGS-text-zip/
+# 안전망: 어느 위치든 동일 폴더명 차단
+LGS-text-zip/
+
+# === new-version 파생 데이터 (원문에서 추출/생성, 저작권) ===
+new-version-multiagent/data/
+
+# === 학습 산출물 (어댑터, 저작권 텍스트로 학습됨 + 대용량) ===
+new-version-multiagent/*.zip
+new-version-multiagent/lgs_style_lora_final/
+new-version-multiagent/lgs_style_lora/
+
+# === 논문 원문/2차 사료 + 구조화 KB (저작권/비공개) ===
+new-version-multiagent/LGS-paper-zip/
+new-version-multiagent/secondary_sources.json
+new-version-multiagent/thought_sources.json

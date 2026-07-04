@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이광수 페르소나 시뮬레이션 — 프로젝트 개요</title>
+<style>
+  :root{
+    --ink:#1c1a17; --sub:#5d574e; --line:#e7e1d6; --bg:#faf7f1;
+    --card:#fffdf9; --accent:#7c4a2d; --accent2:#b9874f; --soft:#f1ebe0;
+    --gold:#fff7e8; --blue:#eef3f6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    line-height:1.7;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:0 22px}
+  header{padding:64px 0 40px;border-bottom:1px solid var(--line)}
+  .tag{display:inline-block;font-size:13px;letter-spacing:.04em;color:var(--accent);
+    background:var(--gold);border:1px solid #efe0c6;padding:4px 12px;border-radius:999px;margin-bottom:18px}
+  h1{font-size:34px;line-height:1.3;margin:0 0 12px;font-weight:800;letter-spacing:-.01em}
+  h1 .accent{color:var(--accent)}
+  .lead{font-size:17px;color:var(--sub);margin:0;max-width:680px}
+  section{padding:42px 0;border-bottom:1px solid var(--line)}
+  h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent2);
+    margin:0 0 18px;font-weight:700}
+  h3{font-size:21px;margin:0 0 10px;font-weight:700}
+  p{margin:0 0 14px}
+  .muted{color:var(--sub)}
+  .paper{background:var(--blue);border:1px solid #dde7ec;border-radius:14px;padding:20px 22px}
+  .paper .cite{font-size:14px;color:#3f5560;margin-top:8px}
+  .grid{display:grid;gap:16px}
+  .cards3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:720px){.cards3{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card .n{font-size:12px;font-weight:700;color:var(--accent2);letter-spacing:.08em}
+  .card h4{margin:6px 0 8px;font-size:17px}
+  .card p{font-size:14.5px;color:var(--sub);margin:0}
+  /* pipeline */
+  .flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+  .node{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:16px 14px;text-align:center}
+  .node.style{border-color:var(--accent2);background:var(--gold)}
+  .node .role{font-size:11px;color:var(--accent2);font-weight:700;letter-spacing:.08em}
+  .node .name{font-weight:700;margin:4px 0 4px;font-size:15.5px}
+  .node small{color:var(--sub);font-size:12.5px;display:block}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--accent2);
+    font-size:22px;padding:0 6px}
+  @media(max-width:720px){.flow{flex-direction:column}.arrow{transform:rotate(90deg);padding:6px 0}}
+  /* steps */
+  .step{display:flex;gap:16px;margin-bottom:18px}
+  .step .idx{flex:none;width:34px;height:34px;border-radius:50%;background:var(--accent);
+    color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+  .step .body h4{margin:4px 0 4px;font-size:16.5px}
+  .step .body p{font-size:14.5px;color:var(--sub);margin:0}
+  .ex{background:var(--soft);border-radius:10px;padding:12px 14px;margin-top:10px;font-size:14px}
+  .ex .from{color:var(--sub)}
+  .ex .to{color:var(--accent);font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:6px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+  th{color:var(--accent2);font-weight:700;font-size:12.5px;letter-spacing:.06em}
+  .pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;
+    background:var(--gold);border:1px solid #efe0c6;color:var(--accent)}
+  .status li{margin-bottom:6px}
+  .ok{color:#2f7d50;font-weight:700}
+  .run{color:#b9874f;font-weight:700}
+  footer{padding:34px 0 70px;color:var(--sub);font-size:13px}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="tag">학술 발표 프로젝트 · LLM 페르소나 시뮬레이션</span>
+  <h1>춘원 이광수, <span class="accent">말투까지</span> 재현하는<br>페르소나 시뮬레이션</h1>
+  <p class="lead">단순히 "이광수에 대한 사실"을 아는 챗봇을 넘어, <b>이광수처럼 말하고 이광수처럼 자기를 합리화하는</b>
+  깊은 페르소나를 만든다. 핵심은 말투를 담당하는 작은 언어모델을 직접 <b>파인튜닝</b>하는 것.</p>
+</header>
+
+<section>
+  <h2>출발점이 된 논문</h2>
+  <div class="paper">
+    <h3>표면적 프로필을 넘어, 깊은 페르소나로</h3>
+    <p class="muted">이 논문은 인물의 "프로필(표면적 사실)"만 프롬프트에 넣는 방식의 한계를 지적하고,
+    인물의 <b>언어적 문체</b>와 <b>사고·지식</b>을 모델에 깊이 새겨 넣어야 진짜 페르소나가 된다고 주장한다.
+    특히 작가(예: 루쉰)의 문체를, <b>중립적인 일반 문장 ↔ 작가 원문</b>의 병렬 데이터로 학습시키는
+    스타일 변환(Style Transfer) 기법을 제시한다. — 우리는 이 골격을 이광수에 그대로 적용했다.</p>
+    <p class="cite">Wang, Zixiao, et al. “Beyond Profile: From Surface-Level Facts to Deep Persona
+    Simulation in LLMs.” <i>Findings of the Association for Computational Linguistics: ACL 2025.</i></p>
+  </div>
+</section>
+
+<section>
+  <h2>우리의 설계 — 역할을 셋으로 나눈다</h2>
+  <p class="muted">"무엇을 말하나(내용)"와 "어떻게 말하나(말투)"와 "이게 진짜 이광수다운가(검증)"를 분리한다.
+  말투만 전담하는 가운데 모델을 파인튜닝하는 것이 이번 버전의 핵심 전환이다.</p>
+  <div class="flow">
+    <div class="node">
+      <div class="role">KNOWLEDGE</div>
+      <div class="name">지식 에이전트</div>
+      <small>논문 12편에서<br>친일 논거를 검색(RAG)</small>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node style">
+      <div class="role">STYLE · 파인튜닝</div>
+      <div class="name">말투 모델 ★</div>
+      <small>평이한 현대어를<br>이광수 근대 문체로 변환</small>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node">
+      <div class="role">VALIDATOR</div>
+      <div class="name">검증 에이전트</div>
+      <small>자기합리화 3축을<br>구조화 채점</small>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>핵심 — 말투 모델은 이렇게 만든다</h2>
+  <p class="muted">논문의 스타일 변환 기법을 채택해, 이광수 원문에서 <b>(중립 현대어 → 이광수체)</b> 병렬쌍을 합성하고
+  작은 모델에 학습시킨다.</p>
+
+  <div class="step">
+    <div class="idx">1</div>
+    <div class="body">
+      <h4>대표 문장 선별</h4>
+      <p>이광수 원문에서 문체 밀도가 높은 문장(한자어·격식체)을 골라낸다.</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="idx">2</div>
+    <div class="body">
+      <h4>중립화 — 문체를 지운다</h4>
+      <p>각 원문을 "문체 없는 평이한 현대어"로 역변환한다. 이때 <b>뜻·논증적 의도·감정 어조는 그대로 보존</b>하고
+      옛 문체만 벗겨낸다.</p>
+      <div class="ex">
+        <span class="to">이광수 원문</span> · 우리 집은 원래 내가 다섯 살 되기까지는 잘 사랏스나, 점점 家運이 기우러저서…<br>
+        <span class="from">↓ 중립화</span><br>
+        <span class="from">중립 현대어</span> · 우리 집은 원래 내가 다섯 살이 될 때까지는 넉넉했지만, 점점 가세가 기울어…
+      </div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="idx">3</div>
+    <div class="body">
+      <h4>병렬쌍으로 파인튜닝</h4>
+      <p><b>입력 = 중립 현대어 / 정답 = 이광수 원문</b>의 쌍 수천 개로 작은 모델을 학습한다.
+      그러면 모델은 평범한 문장을 받아도 이광수 특유의 근대 말투로 바꿔 쓰게 된다.
+      <span class="pill">학습 방향: 중립어 → 이광수체</span></p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>데이터와 모델</h2>
+  <table>
+    <tr><th>구분</th><th>내용</th><th>역할</th></tr>
+    <tr><td>친일 에세이 9편</td><td>돌베개·민족개조론·창씨개명·교담록 등 (1인칭 자기합리화)</td><td>말투 학습 gold</td></tr>
+    <tr><td>1인칭 소설 3권</td><td>유정·나·그의 자서전 (전집에서 자동 분류)</td><td>말투 학습 주력</td></tr>
+    <tr><td>2차 사료 논문 12편</td><td>이광수 친일 연구</td><td>내용(RAG)·검증 기준</td></tr>
+    <tr><td>베이스 모델</td><td>EXAONE-3.5-2.4B (한국어 특화 소형 모델)</td><td>QLoRA 파인튜닝</td></tr>
+  </table>
+  <p class="muted" style="margin-top:14px;font-size:13.5px">학습은 무료 Colab GPU에서 QLoRA로, 추론은 로컬에서 4비트로.
+  중립화는 Gemini로 자동 합성한다.</p>
+</section>
+
+<section>
+  <h2>어떻게 평가하나</h2>
+  <div class="grid cards3">
+    <div class="card">
+      <div class="n">평가 1</div>
+      <h4>말투 단독 테스트</h4>
+      <p>친일과 무관한 일상 문장을 넣어, 근대 말투가 잘 입혀지는지부터 본다. (내용과 분리된 순수 문체 검증)</p>
+    </div>
+    <div class="card">
+      <div class="n">평가 2</div>
+      <h4>자기합리화 3축</h4>
+      <p>인지부조화 이론 기반으로 합리화·피해자비난·자기확증을 구조화 채점.</p>
+    </div>
+    <div class="card">
+      <div class="n">평가 3</div>
+      <h4>Before / After</h4>
+      <p>파인튜닝 전후 점수를 비교해 정량 결과를 발표 자료로.</p>
+    </div>
+  </div>
+</section>
+
+<section class="status">
+  <h2>현재 진행 상황</h2>
+  <ul>
+    <li><span class="ok">완료</span> · 원문 추출 — 에세이 9편 + 전집 20권 (한자어 괄호병기까지 보존)</li>
+    <li><span class="ok">완료</span> · 1인칭/3인칭 자동 분류로 말투 gold 선별</li>
+    <li><span class="run">진행</span> · 중립→이광수체 병렬쌍 약 5,600개 합성</li>
+    <li><span class="run">다음</span> · Colab에서 QLoRA 학습 → 말투 모델 v1</li>
+  </ul>
+</section>
+
+<footer>
+  <div class="wrap" style="padding:0">
+    이광수 페르소나 시뮬레이션 · 학술 발표용 개요 ·
+    방법론 출처: Wang et al., “Beyond Profile,” Findings of ACL 2025.
+  </div>
+</footer>
+
+</div>
+</body>
+</html>

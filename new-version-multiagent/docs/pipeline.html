@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이광수 페르소나 — 파이프라인 다이어그램</title>
+<style>
+  :root{
+    --ink:#1c1a17; --sub:#5d574e; --line:#e7e1d6; --bg:#faf7f1;
+    --card:#fffdf9; --accent:#7c4a2d; --accent2:#b9874f; --soft:#f1ebe0;
+    --gold:#fff7e8; --goldln:#efe0c6; --blue:#eef3f6; --blueln:#dde7ec;
+    --green:#eef5ee; --greenln:#cfe3cf; --grtext:#2f7d50;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+  header{padding:54px 0 30px;border-bottom:1px solid var(--line)}
+  .tag{display:inline-block;font-size:13px;color:var(--accent);background:var(--gold);
+    border:1px solid var(--goldln);padding:4px 12px;border-radius:999px;margin-bottom:14px}
+  h1{font-size:30px;margin:0 0 8px;font-weight:800;letter-spacing:-.01em}
+  .lead{font-size:16px;color:var(--sub);margin:0;max-width:720px}
+  section{padding:38px 0;border-bottom:1px solid var(--line)}
+  h2{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent2);
+    margin:0 0 6px;font-weight:700}
+  .h2sub{font-size:20px;font-weight:700;margin:0 0 22px}
+  /* flow */
+  .flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+  .stage{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);
+    border-radius:13px;padding:15px 13px;display:flex;flex-direction:column}
+  .stage .k{font-size:11px;font-weight:800;color:var(--accent2);letter-spacing:.06em}
+  .stage .t{font-weight:700;font-size:15px;margin:5px 0 6px}
+  .stage .d{font-size:12.5px;color:var(--sub);margin:0}
+  .stage .tool{margin-top:9px;font-size:11px;color:var(--accent);background:var(--gold);
+    border:1px solid var(--goldln);border-radius:6px;padding:3px 7px;align-self:flex-start}
+  .stage.star{border-color:var(--accent2);background:var(--gold)}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--accent2);
+    font-size:22px;padding:0 5px;flex:none}
+  @media(max-width:780px){.flow{flex-direction:column}.arrow{transform:rotate(90deg);padding:5px 0}}
+  /* agent runtime */
+  .agent{flex:1;min-width:160px;border-radius:13px;padding:16px 14px;border:1px solid var(--line);
+    background:var(--card);text-align:center}
+  .agent .role{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--accent2)}
+  .agent .name{font-weight:700;font-size:16px;margin:5px 0 5px}
+  .agent .d{font-size:12.5px;color:var(--sub)}
+  .agent.style{border-color:var(--accent2);background:var(--gold)}
+  .agent.io{background:var(--soft);max-width:120px;flex:none;display:flex;
+    align-items:center;justify-content:center;font-weight:700;font-size:14px}
+  .retry{margin-top:14px;font-size:13px;color:var(--accent);text-align:center}
+  .retry b{background:var(--gold);border:1px solid var(--goldln);border-radius:6px;padding:2px 8px}
+  /* sources */
+  .src{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px}
+  @media(max-width:680px){.src{grid-template-columns:1fr}}
+  .scard{border-radius:12px;padding:16px 18px;border:1px solid var(--blueln);background:var(--blue)}
+  .scard h4{margin:0 0 6px;font-size:15.5px}
+  .scard p{margin:0;font-size:13px;color:#3f5560}
+  .scard .use{margin-top:8px;font-size:12px;color:#2c4450;font-weight:600}
+  .note{font-size:12.5px;color:var(--sub);margin-top:14px}
+  .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;
+    background:var(--green);border:1px solid var(--greenln);color:var(--grtext);font-weight:700}
+  .link{margin-top:18px;font-size:13px}
+  .link b{color:var(--accent)}
+  footer{padding:30px 0 64px;color:var(--sub);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="tag">시스템 파이프라인 · 현재 버전</span>
+  <h1>이광수 페르소나 — 전체 파이프라인</h1>
+  <p class="lead">크게 두 단계. <b>① 오프라인에서 말투 모델을 굽고</b>, <b>② 런타임에서 세 에이전트가 협업</b>해
+  답변을 만든다. 오늘 작업한 대부분은 ①(말투 모델 구축)에 해당한다.</p>
+</header>
+
+<!-- 데이터 출처 -->
+<section>
+  <h2>Data Sources</h2>
+  <div class="h2sub">두 갈래의 사료</div>
+  <div class="src">
+    <div class="scard">
+      <h4>1차 사료 — 이광수 원문</h4>
+      <p>친일 에세이 9편(돌베개·민족개조론·교담록…) + 전집 1인칭 소설(유정·나·그의 자서전)</p>
+      <div class="use">→ 말투 모델 학습용 (문체)</div>
+    </div>
+    <div class="scard">
+      <h4>2차 사료 — 학술 논문</h4>
+      <p>이광수 친일 연구 12편 (인지부조화 분석 포함)</p>
+      <div class="use">→ 지식 에이전트(RAG) · 검증 기준</div>
+    </div>
+  </div>
+</section>
+
+<!-- ① 오프라인 학습 파이프라인 -->
+<section>
+  <h2>Stage ① · Offline</h2>
+  <div class="h2sub">말투 모델(StyleModel) 구축 파이프라인 <span class="badge">오늘 작업</span></div>
+  <div class="flow">
+    <div class="stage">
+      <div class="k">STEP 1</div>
+      <div class="t">원문 추출</div>
+      <p class="d">PDF·hwp에서 텍스트 추출 (한자어 괄호병기 보존)</p>
+      <span class="tool">PyMuPDF · gethwp</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stage">
+      <div class="k">STEP 2</div>
+      <div class="t">선별·분류</div>
+      <p class="d">1인칭/3인칭 자동 분류 → gold 선별, 문체밀도 높은 대표 문장 추출</p>
+      <span class="tool">휴리스틱</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stage">
+      <div class="k">STEP 3</div>
+      <div class="t">중립화 → 병렬쌍</div>
+      <p class="d">원문을 평이한 현대어로 역변환. (중립어 ↔ 이광수체) 4,620쌍</p>
+      <span class="tool">Gemini Flash</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stage star">
+      <div class="k">STEP 4 ★</div>
+      <div class="t">QLoRA 학습</div>
+      <p class="d">소형 LM(Qwen2.5-3B)을 4비트로 미세조정 → 문체 어댑터</p>
+      <span class="tool">Colab T4 · QLoRA</span>
+    </div>
+  </div>
+  <p class="note">산출물 = <b>StyleModel LoRA 어댑터</b> (50~200MB). 이게 아래 런타임의 가운데 칸으로 들어간다.</p>
+</section>
+
+<!-- ② 런타임 추론 파이프라인 -->
+<section>
+  <h2>Stage ② · Runtime</h2>
+  <div class="h2sub">멀티 에이전트 추론 파이프라인</div>
+  <div class="flow">
+    <div class="agent io">사용자<br>질문</div>
+    <div class="arrow">→</div>
+    <div class="agent">
+      <div class="role">KNOWLEDGE</div>
+      <div class="name">지식 에이전트</div>
+      <div class="d">논문(5쟁점축)에서<br>친일 논거 검색(RAG)</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="agent style">
+      <div class="role">STYLE ★ 파인튜닝</div>
+      <div class="name">말투 모델</div>
+      <div class="d">논거를 이광수<br>근대 문체로 재서술</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="agent">
+      <div class="role">VALIDATOR</div>
+      <div class="name">검증 에이전트</div>
+      <div class="d">자기합리화 3축 +<br>사실정합성 채점</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="agent io">최종<br>답변</div>
+  </div>
+  <p class="retry">↺ 검증 미달 시 <b>최대 3회 재시도</b> (검증 → 말투 모델로 되돌림)</p>
+  <p class="note">검증은 <b>말투/합리화 분리 채점</b> — 말투는 이미 모델이 책임지므로, 검증은
+  인지부조화 3축(합리화·피해자비난·자기확증)과 논거 정합성에 집중한다.</p>
+</section>
+
+<section>
+  <h2>핵심 전환</h2>
+  <div class="h2sub">"문체를 검색" → "문체를 모델에 내재화"</div>
+  <p style="font-size:15px;color:var(--sub);margin:0;max-width:760px">
+    기존 버전은 말투를 RAG로 <i>검색·모방</i>했지만, 현재 버전은 1차 사료로 만든 병렬쌍으로
+    작은 모델을 <i>파인튜닝</i>해 문체를 가중치에 새겨 넣는다. 표면적 모방을 넘어선 <b>심층 페르소나 시뮬레이션</b>.
+  </p>
+  <p class="link">방법론 출처 — <b>Wang et al., “Beyond Profile: From Surface-Level Facts to Deep
+  Persona Simulation in LLMs.” Findings of ACL 2025.</b></p>
+</section>
+
+<footer>이광수 페르소나 시뮬레이션 · 파이프라인 다이어그램 · 현재 버전 기준</footer>
+
+</div>
+</body>
+</html>
